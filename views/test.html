@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alpine.js x-sort Example</title>
+   <!-- Alpine Plugins -->
+   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+
+    <!-- Alpine Core -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+    <ul x-sort>
+        <li x-sort:item>foo</li>
+        <li x-sort:item>bar</li>
+        <li x-sort:item>baz</li>
+    </ul>
+    <div x-data="$store.plants">
+        <div>
+            <table x-sort="fruits" >
+                <template x-for="item in fruits" :key="item">
+                    <tr x-text="item"></tr>
+                </template>
+            </table>
+        </div>
+    </div>
+
+
+</body>
+</html>
+<style>
+    div {
+        border: 1px solid #000;
+    }
+</style>
+<script>
+// on alpine init create fruit store
+document.addEventListener('alpine:init', () => {
+    Alpine.store('plants', {
+        fruits: ['Apple', 'Banana', 'Cherry']
+    })
+})
+
+</script>

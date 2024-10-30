@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- sakura dark mode -->
+    <link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura-earthly.css" type="text/css">
+    
+    
+    <!-- alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+    <script src="progressbar.min.js"></script>
+    <script src="voice.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/siimple-icons/siimple-icons.css" />
+    <title>taskflow</title>
+</head>
+<body>
+    
+    
+
+  
+<div x-data="$store.flowlist">
+
+        <table>
+
+            <tr>
+                <!-- <td width="100%" style="display: flex; justify-content: center;">
+                    <div  x-show="activeTask" x-text="formatSecondsToTime(activeTask.duration - activeTask.elapsed)" style="font-weight:500;" :class="activeTask.duration - activeTask.elapsed < 0 ? 'overdueTimeText' : 'regularTimeText'">
+                    </div>
+                </td> -->
+            </tr>
+           
+            <tr>
+                <!-- a progress bar for each task -->
+                <td width="100%" style="display: flex; justify-content: center;">
+                    <div class="progress" id="progress"></div>
+                </td>
+            </tr>
+            <tr>
+                <td width="100%" style="display: flex; justify-content: space-between;">
+
+
+                <!-- big round back button -->
+                <button id='backbutton' style="border-radius: 50%; width: 40px; height: 40px; font-size: 1em; display: inline; justify-content: center; align-items: center;;margin-right:5px;background-color: #e3e2e2;" @click="previousTask()">
+                    <i class="si-step-backward"></i>
+                </button>
+                
+                <!-- big round 'play' button inline css-->
+                <button x-show='!timer' id='playbutton' style="border-radius: 50%; width: 40px; height: 40px; font-size: 1em; display: inline; justify-content: center; ;margin-right:5px; align-items: center;background-color: rgb(70, 177, 106);" @click="play()">
+                    <i class="si-play" style="font-size: 1em;"></i>
+                </button>
+                <!-- pause button -->
+                <button x-show='timer' id='pausebutton' style="border-radius: 50%; width: 40px; height: 40px; font-size: 1em; display: inline; justify-content: center; align-items: center; margin-right:5px; background-color: rgb(222, 187, 255);" @click="stopTimer(activeTaskIndex)">
+                    <i class="si-pause" style="font-size: 1em;"></i>
+                </button>
+                <button id='nextbutton' x-show="activeTask" style="border-radius: 50%; width: 40px; height: 40px; font-size: 1em; display: inline; justify-content: center; align-items: center ;margin-right:5px;background-color:rgba(56, 154, 154, 0.584)" @click="completeTask()">
+                    <!-- simple check mark emoji -->
+                    <i class="si-check-circle"></i>
+                </button>
+            </td>
+        </td>
+        
+      
+    </tr>
+</table>
+
+   
+    <div x-show="timer" id="timeprogresscontainer">
+        <div width="100%" style="display: flex; justify-content: center;">
+    <div id="taskTimeProgressBar"></div>
+    </div>
+    </div>
+    <br><br>
+
+    <div width="100%" x-show="timer" style="display: flex; justify-content: center;margin-bottom: 150px;">
+        <!-- active task -->
+<div width="100%" x-show="timer" x-text="activeTask.task" width="80%" style="margin:auto; font-size: 1.5em; font-weight:500;justify-content: center;align-items: center;text-align: center;">
+<!-- active task duration -->
+</div>
+</div>
+
+
+
+<table width="100%" x-show="!timer" id="taskTable">
+    <template x-for="(task, index) in tasks" :key="index">
+        <tr :class="index == activeTaskIndex ? 'activeTableRow' : ''">
+            <!-- fireworks on check -->
+            <td><input type="checkbox" x-model="task.done" @change="doneToggled(index)"></td>
+            <!-- on input, run editingTasks() -->
+            <td><input type="text" class='tasktextinput' width="100%" x-model="task.task" @input="editingTasks()" :class="task.done ? 'line-through' : ''"></td>
+            <td width="40px">
+                <input type="number" min="0" max="59" x-model="task.minutes" @input="editingTasks()" style="appearance: textfield;">                
+                
+            </td>
+            <!-- <td>
+                <button x-show="!task.timer" @click="startTimer(index)">Start</button>
+                <button x-show="task.timer" @click="stopTimer(index)">Stop</button>
+                
+                <button x-show="task.elapsed!=0" @click="resetTimer(index)">Reset</button>
+            </td> -->
+            <td width="40px;"><div x-show="task.elapsed!=0" x-text="formatSecondsToTime(task.elapsed)" style="font-size: 0.7em; color:rgba(0, 0, 0, 0.521);"></div></td>
+                    <!-- delete task -->
+        <td>
+            <div  @click="tasks.splice(index, 1)"><i class="si-trash" style="font-size: 0.7em;cursor:pointer;color:rgba(0, 0, 0, 0.521);"></i></div>
+        </td>
+        </tr>
+    </template>
+    <tr @click="addTask()" style="cursor:pointer;text-align: center; color: #e3e2e2;width:100%">
+        <!-- single cell spannig full width -->
+        <td colspan="4">+ Add Task</td>
+    </tr>
+</table>
+<!-- button to log flowlist content to console -->
+<!-- log active  -->
+
+
+</div>
+
+
+</html>
+
+<script>
+    // Alpine.js store for the list
+    // after alpine init event, create a list of tasks
+    
+    
+    document.addEventListener('alpine:init', () => {
+        
+        
+        Alpine.store('flowlist', {
+            tasks: [
+            {id:0, done: false, task: '', minutes:5, duration:5*60, elapsed: 0 },
+            ],
+            activeTaskIndex: 0,
+            activeTask: false,
+            timer: null,
+
+            // set active task on init
+            init() {
+                this.setActiveTask(this.activeTaskIndex);
+            },
+            
+            addTask: function() {
+                const newId = Math.max.apply(Math, this.tasks.map(function(o) { return o.id; })) + 1;
+                this.tasks.push({ id:newId, done: false, task: '', minutes: 5, seconds: 0, duration: 300, elapsed: 0 });
+            },
+
+            setActiveTask: function(taskIndex) {
+                this.activeTaskIndex = taskIndex;
+                this.activeTask = this.tasks[taskIndex];
+            },
+
+            notifyUser: function(message) {
+                new Notification(message);
+                speaker.speak(message);
+            },
+            
+            startTimer: function() {
+                const taskIndex = this.activeTaskIndex;
+                this.stopTimer();
+                // start the timer
+                this.timer = setInterval(() => {
+                    this.tasks[taskIndex].elapsed++;
+                    // set page title to clock emoji and remaining time
+                    document.title = '🕒  ' + formatSecondsToTime(this.tasks[taskIndex].duration - this.tasks[taskIndex].elapsed) + " " + this.tasks[taskIndex].task;
+
+                    // update the progress bar
+                    taskTimeProgressBar.animate(this.thisTaskProgress());
+                    // set tak time progress bar text
+                    taskTimeProgressBar.setText(formatSecondsToTime(this.tasks[taskIndex].duration - this.tasks[taskIndex].elapsed));
+
+                    // if time exceesd duration, send browser notification with next task text
+                    const timeLeft = this.tasks[taskIndex].duration - this.tasks[taskIndex].elapsed;
+                    const isOverDue = timeLeft < 0;
+                    if (timeLeft === 0) {
+                        const nextTask = this.tasks[taskIndex + 1] ? this.tasks[taskIndex + 1].task : 'flow complete?';
+                        this.notifyUser(nextTask);
+                        
+                    }else if (isOverDue && timeLeft  % 300 === 0) {
+                        const timeOverDueString = (this.tasks[taskIndex].elapsed - this.tasks[taskIndex].duration)/60;
+                        const thisTask = this.tasks[taskIndex].task;
+                        this.notifyUser( thisTask + " due " + timeOverDueString + 'min ago');        
+                    }        
+                }, 1000);
+            },
+            stopTimer: function() {
+                if(this.timer){
+                    clearInterval(this.timer);
+                    this.timer = null;
+                }
+            },
+            resetTimer: function(taskIndex) {
+                this.tasks[taskIndex].elapsed = 0;
+            },
+            play: function() {
+                // start timer on active task
+                this.stopTimer();
+                this.startTimer();
+                Notification.requestPermission().then((result) => {
+                    console.log(result);
+                });
+            },
+
+            completeTask: function() {
+                this.tasks[this.activeTaskIndex].done = true;
+                bar.animate(this.totalProgress());
+                // a tiny bit of confetti
+                setTimeout(() => {
+                    randomConfetti(500);
+                }, 500);
+
+
+                // if there are no more non-empty tasks, stop 
+                if (this.activeTaskIndex === this.tasks.length - 1) {
+                    this.stopTimer(this.activeTaskIndex);
+                    // make a sparkly animation
+                    document.getElementById('nextbutton').style.animation = 'sparkle 1s';
+                    // reset the task
+                    randomConfetti(5000);
+                    return;
+                }
+                // otherwise start timer on next task
+                this.setActiveTask(this.activeTaskIndex + 1);
+                // if timer is running, stop it and start it again on the next task
+                if (this.timer) {
+                    this.stopTimer();
+                    this.startTimer();
+                }
+            },
+            nextTask: function() {
+
+                // if this is the last task, stop the timer
+                if (this.activeTaskIndex === this.tasks.length - 1) {
+                    this.stopTimer();
+                    return;
+                }
+                
+                this.setActiveTask(this.activeTaskIndex + 1);
+                if (this.timer) {
+                    this.stopTimer();
+                    this.startTimer();
+                }
+                
+            },
+
+            totalProgress: function() {
+                const totalDuration = this.tasks.reduce((acc, task) => acc + task.duration, 0);
+                const totalElapsedOfDoneTasks = this.tasks.filter(task => task.done && task!='').reduce((acc, task) => acc + task.duration, 0);
+                return totalElapsedOfDoneTasks / totalDuration;
+            },
+
+            thisTaskProgress: function() {
+                return 1-(this.activeTask.elapsed / this.activeTask.duration);
+            },
+            
+            previousTask: function() {
+                console.log('previous task');
+
+                // reset this task
+                this.resetTimer(this.activeTaskIndex);
+                this.tasks[this.activeTaskIndex].done = false;
+
+                bar.animate(this.totalProgress());
+
+                if(this.activeTaskIndex === 0){
+                    return;
+                }
+                // if more than 1 second has passed or this is the first item, just, reset the task
+               
+                this.setActiveTask(this.activeTaskIndex - 1);
+
+                if (this.timer) {
+                    this.stopTimer();
+                    this.startTimer();
+                }
+            },
+
+            taskTimeProgress: function() {
+                return ((this.activeTask.duration-this.activeTask.elapsed) / this.activeTask.duration);
+            },
+            
+            resetAllTimers: function() {
+                this.tasks.forEach(task => {
+                    task.elapsed = 0;
+                });
+                this.stopTimer();
+                this.setActiveTask(0);
+            },
+
+            editingTasks: function() {
+                
+                // recalculate the duration
+                this.tasks.forEach(task => {
+                    task.duration =parseInt(task.minutes) * 60;
+                });
+                // update the progress bar
+                bar.animate(this.totalProgress());
+            },
+
+            doneToggled: function(index) {
+                // if task is done, make a tiny bit of confetti
+                if (this.tasks[index].done) {
+                    randomConfetti(500);
+                }
+                bar.animate(this.totalProgress());
+            },
+            
+        });
+        
+        
+        
+    });
+    
+    
+    
+    function formatSecondsToTime(seconds) {
+        const isNegative = seconds < 0;
+        const absoluteSeconds = Math.abs(seconds);
+        const hours = Math.floor(absoluteSeconds / 3600);
+        const minutes = Math.floor((absoluteSeconds % 3600) / 60);
+        const remainingSeconds = absoluteSeconds % 60;
+        // show 0 as 00
+        // only show hours if there are any
+        const hours_string = hours > 0 ? hours.toString().padStart(2, '0') + ':' : '';
+        const timeString = (isNegative ? '-' : '') + hours_string + minutes.toString().padStart(2, '0') + ':' + remainingSeconds.toString().padStart(2, '0');
+        // log all intermediate values
+        
+        return timeString;
+    }
+    
+    function randomConfetti(duration){
+        var animationEnd = Date.now() + duration;
+        var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+        
+        function randomInRange(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+        
+        var interval = setInterval(function() {
+            var timeLeft = animationEnd - Date.now();
+            
+            if (timeLeft <= 0) {
+                return clearInterval(interval);
+            }
+            
+            var particleCount = 250 * (timeLeft / duration);
+            // since particles fall down, start a bit higher than random
+            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+        }, 250);
+    }
+    
+    // keyboard shortcuts: space to play, enter to next
+    // left arrow to reset
+    // double left arrow to reset and return to previous task
+    document.onkeydown = checkKey;
+    function checkKey(evt) {
+        const formElements = ['INPUT', 'TEXTAREA', 'SELECT', 'OPTION', 'BUTTON'];
+        evt = evt || window.event;
+        
+            let flowlist = Alpine.store('flowlist');
+            
+            if (event.key === ' ') {
+                if (!formElements.includes(evt.target.tagName)) {
+        
+                    if(flowlist.timer){
+                        flowlist.stopTimer(flowlist.activeTaskIndex);
+                    }else{
+                        flowlist.play()
+                    }
+                }
+            }
+            if (event.key === 'Enter') {
+                // is the target an input and is it not empty?
+                const isInput = evt.target.tagName === 'INPUT';
+                const isNotEmpty = evt.target.value !== '';
+                // is it the last input?
+                console.log(isInput, isNotEmpty);
+
+                if(isInput && isNotEmpty){
+                    flowlist.addTask();
+                    // find most recently added input and focus on it
+                    setTimeout(() => {
+                        const table = document.querySelector('#taskTable');
+                        const lastRow = table.rows[table.rows.length - 2];
+                        var input = lastRow.querySelectorAll('td')[1].querySelector('input')
+                        input.focus();
+
+
+                    }, 100);
+                }
+                // if timer is running, complete the task
+                if (flowlist.timer) {
+                    flowlist.completeTask();
+                }
+
+            }
+            // up or left arrow
+            if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+                // got to previous task
+                flowlist.previousTask();
+                
+            }
+            if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+                // go to next task
+                flowlist.completeTask();
+            }
+                
+    }
+    
+    
+    // notifcation
+    Notification.requestPermission().then((result) => {
+        console.log(result);
+    });
+    
+    var bar = null;
+    window.onload = function onLoad() {
+    bar = new ProgressBar.Line('#progress', {
+        color: '#c71c8d',
+        duration: 500,
+        easing: 'easeInOut',
+        trailColor: '#eee',
+    });
+
+    taskTimeProgressBar = new ProgressBar.Circle('#taskTimeProgressBar', {
+        color: '#00FF00',
+        duration: 500,
+        easing: 'easeInOut',
+        trailColor: '#eee',
+        transform: {
+                prefix: true,
+                value: 'translate(-50%, -50%)'
+            },
+        strokeWidth: 3,
+        text: {className: 'progressCircleText'}
+
+       
+        
+    });
+
+
+};
+
+// focus on the first text input
+document.addEventListener('alpine:initializing', () => {
+    setTimeout(() => {
+        document.querySelector('input[type="text"]').focus();
+    }, 100);
+});
+
+
+</script>
+
+
+<style>
+            .progress {
+                height: 5px;
+                width: 100%;
+            }
+
+            .progress > svg {
+                height: 100%;
+                display: block;
+            }
+
+tr {
+    width: 100%;
+    position: relative;
+
+}
+
+tr, td {
+    margin: 0;
+    line-height: 1;
+    padding: 4px;
+    border: 0;
+    border-bottom: 0;
+}
+
+/* text inpujt */
+input {
+    width: 100%;
+    border: none;
+    margin: 0;
+    padding: 3px;
+    background-color: transparent;
+    /* align input text in center */
+    text-align: center;
+    
+}
+
+.progressbar-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2em;
+    font-weight: 500;
+    color: #b7ff10;
+}
+div {
+    border: 0px solid #e3e2e2;
+}
+/* focused input */
+input:focus {
+    outline: none;
+    background-color: #f1f1f1;
+}
+
+
+    .activeTableRow {
+        background-color: #f1f1f1;
+    }
+    
+    /* sparkle animatino */
+    @keyframes sparkle {
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.2);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+    
+    .overdueTimeText {
+        color: rgba(94, 0, 0, 0.755);
+        font-size: 3em;
+    }
+
+    .regularTimeText {
+        /* animate color gradient */
+        color: rgba(219, 73, 255, 0.747);
+        font-size: 3em;
+    }
+#timeprogresscontainer {
+    width: 150px;
+    height: 150px;
+    /* algin content in center */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    font-weight: 500;
+
+}
+
+.progressCircleText {
+    font-size: 2em;
+    color: #ef0abd !important;
+}
+.line-through {
+    text-decoration: line-through;
+}
+
+    button {
+        /* no broder */
+        border: none;
+
+        
+    }
+    /* tint darker on hover, no matter the color */
+    button:hover {
+        filter: brightness(0.9);
+        cursor: pointer;
+    }
+    
+</style>
+
