@@ -5,44 +5,106 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- sakura dark mode -->
     <link rel="stylesheet" href="https://unpkg.com/sakura.css/css/sakura-earthly.css" type="text/css">
-    
-    
+    <link rel="manifest" href="./manifest.json">
+    <!-- Alpine Plugins -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/sort@3.x.x/dist/cdn.min.js"></script>
+    <script src=" https://cdn.jsdelivr.net/npm/js-cookie@3.0.5/dist/js.cookie.min.js "></script>
     <!-- alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-
+    <!-- sortable.js -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs"></script>
     <script src="./progressbar.min.js"></script>
     <script src="./voice.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/siimple-icons/siimple-icons.css" />
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="./icon/ios/AppIcon-29.png">
+
     <title>taskflow</title>
 </head>
 <body>
     
     
-
-  
-<div x-data="$store.flowlist">
-
-        <table>
-
-            <tr>
-                <!-- <td width="100%" style="display: flex; justify-content: center;">
-                    <div  x-show="activeTask" x-text="formatSecondsToTime(activeTask.duration - activeTask.elapsed)" style="font-weight:500;" :class="activeTask.duration - activeTask.elapsed < 0 ? 'overdueTimeText' : 'regularTimeText'">
-                    </div>
+    
+    
+    <div x-data="$store.flowlist" id="globalcontainer">
+        
+     
+    
+    
+    <div x-show="timer" id="timeprogresscontainer">
+        <div width="100%" style="display: flex; justify-content: center;">
+            <div id="taskTimeProgressBar"></div>
+        </div>
+    </div>
+    <br><br>
+    
+    <div width="100%" x-show="timer" style="display: flex; justify-content: center;margin-bottom: 150px;">
+        <!-- active task -->
+        <div width="100%" x-show="timer" x-text="activeTask.task" width="80%" style="margin:auto; font-size: 1.5em; font-weight:500;justify-content: center;align-items: center;text-align: center;">
+            <!-- active task duration -->
+        </div>
+    </div>
+    
+    
+    
+    <table width="100%" x-show="!timer" id="taskTable" x-ref="taskTable">
+        <template x-for="(task, index) in tasks" :key="index">
+            <tr :class="task.isFocused ? 'activeTableRow' : ''">
+                <!-- fireworks on check -->
+                <td><input type="checkbox" x-model="task.done" @focus="focusedTask=index;" @blur="focusedTask=null;" @change="doneToggled(index)"></td>
+                <!-- on input, run editingTasks() -->
+                <td><input type="text" class='tasktextinput' width="100%" x-model="task.task" @focus="focusedTask=index;" @blur="focusedTask=null;" @input="editingTasks()" :class="task.done ? 'line-through' : ''"></td>
+                <td width="40px">
+                    <input type="number" min="0" max="999" x-model="task.minutes"  @focus="focusedTask=index;" @blur="focusedTask=null;"  @input="editingTasks()" style="appearance: textfield;">                
+                    
+                </td>
+                <!-- <td>
+                    <button x-show="!task.timer" @click="startTimer(index)">Start</button>
+                    <button x-show="task.timer" @click="stopTimer(index)">Stop</button>
+                    
+                    <button x-show="task.elapsed!=0" @click="resetTimer(index)">Reset</button>
                 </td> -->
-            </tr>
-           
-            <tr>
-                <!-- a progress bar for each task -->
-                <td width="100%" style="display: flex; justify-content: center;">
-                    <div class="progress" id="progress"></div>
+                <td width="40px;"><div x-show="task.elapsed!=0" x-text="formatSecondsToTime(task.elapsed)" style="font-size: 0.7em; color:rgba(0, 0, 0, 0.521);"></div></td>
+                <!-- delete task -->
+                <td>
+                    <div  @click="tasks.splice(index, 1)"><i class="si-trash" style="font-size: 0.7em;cursor:pointer;color:rgba(0, 0, 0, 0.521);"></i></div>
                 </td>
             </tr>
-            <tr>
-                <td width="100%" style="display: flex; justify-content: space-between;">
+        </template>
+        
+    </table>
+    <table>
+        <tr @click="addTask()" style="cursor:pointer;text-align: center; color: #e3e2e2;width:100%">
+            <!-- single cell spannig full width -->
+            <td colspan="4">+ Add Task</td>
+        </tr>
+    </table>
+    <!-- button to log flowlist content to console -->
+    <!-- log active  -->
 
-
+    <table id="nav">
+            
+        <tr>
+            <!-- <td width="100%" style="display: flex; justify-content: center;">
+                <div  x-show="activeTask" x-text="formatSecondsToTime(activeTask.duration - activeTask.elapsed)" style="font-weight:500;" :class="activeTask.duration - activeTask.elapsed < 0 ? 'overdueTimeText' : 'regularTimeText'">
+                </div>
+            </td> -->
+        </tr>
+        
+        <tr>
+            <!-- a progress bar for each task -->
+            <td width="100%" style="display: flex; justify-content: center;">
+                <div class="progress" id="progress"></div>
+            </td>
+        </tr>
+        <tr>
+            <td width="100%" style="display: flex; justify-content: space-between;">
+                
+                
                 <!-- big round back button -->
                 <button id='backbutton' style="border-radius: 50%; width: 40px; height: 40px; font-size: 1em; display: inline; justify-content: center; align-items: center;;margin-right:5px;background-color: #e3e2e2;" @click="previousTask()">
                     <i class="si-step-backward"></i>
@@ -63,60 +125,11 @@
             </td>
         </td>
         
-      
+        
     </tr>
-</table>
-
-   
-    <div x-show="timer" id="timeprogresscontainer">
-        <div width="100%" style="display: flex; justify-content: center;">
-    <div id="taskTimeProgressBar"></div>
-    </div>
-    </div>
-    <br><br>
-
-    <div width="100%" x-show="timer" style="display: flex; justify-content: center;margin-bottom: 150px;">
-        <!-- active task -->
-<div width="100%" x-show="timer" x-text="activeTask.task" width="80%" style="margin:auto; font-size: 1.5em; font-weight:500;justify-content: center;align-items: center;text-align: center;">
-<!-- active task duration -->
-</div>
-</div>
-
-
-
-<table width="100%" x-show="!timer" id="taskTable">
-    <template x-for="(task, index) in tasks" :key="index">
-        <tr :class="index == activeTaskIndex ? 'activeTableRow' : ''">
-            <!-- fireworks on check -->
-            <td><input type="checkbox" x-model="task.done" @change="doneToggled(index)"></td>
-            <!-- on input, run editingTasks() -->
-            <td><input type="text" class='tasktextinput' width="100%" x-model="task.task" @input="editingTasks()" :class="task.done ? 'line-through' : ''"></td>
-            <td width="40px">
-                <input type="number" min="0" max="59" x-model="task.minutes" @input="editingTasks()" style="appearance: textfield;">                
-                
-            </td>
-            <!-- <td>
-                <button x-show="!task.timer" @click="startTimer(index)">Start</button>
-                <button x-show="task.timer" @click="stopTimer(index)">Stop</button>
-                
-                <button x-show="task.elapsed!=0" @click="resetTimer(index)">Reset</button>
-            </td> -->
-            <td width="40px;"><div x-show="task.elapsed!=0" x-text="formatSecondsToTime(task.elapsed)" style="font-size: 0.7em; color:rgba(0, 0, 0, 0.521);"></div></td>
-                    <!-- delete task -->
-        <td>
-            <div  @click="tasks.splice(index, 1)"><i class="si-trash" style="font-size: 0.7em;cursor:pointer;color:rgba(0, 0, 0, 0.521);"></i></div>
-        </td>
-        </tr>
-    </template>
-    <tr @click="addTask()" style="cursor:pointer;text-align: center; color: #e3e2e2;width:100%">
-        <!-- single cell spannig full width -->
-        <td colspan="4">+ Add Task</td>
-    </tr>
-</table>
-<!-- button to log flowlist content to console -->
-<!-- log active  -->
-
-
+</table>    
+    
+    
 </div>
 
 
@@ -132,27 +145,35 @@
         
         Alpine.store('flowlist', {
             tasks: [
-            {id:0, done: false, task: '', minutes:5, duration:5*60, elapsed: 0 },
+            {id:0, done: false, task: '', minutes:5, duration:5*60, elapsed: 0, isFocused: true},
             ],
             activeTaskIndex: 0,
             activeTask: false,
             timer: null,
-
+            focusedTask: 0, // which task is currently being edited by the user
+            
             // set active task on init
             init() {
                 this.setActiveTask(this.activeTaskIndex);
+                this.loadStateFromCookie();
+                this.saveStateRegularly();
+                
             },
             
             addTask: function() {
                 const newId = Math.max.apply(Math, this.tasks.map(function(o) { return o.id; })) + 1;
-                this.tasks.push({ id:newId, done: false, task: '', minutes: 5, seconds: 0, duration: 300, elapsed: 0 });
+                this.tasks.push({ id:newId, done: false, task: '', minutes: 5, seconds: 0, duration: 300, elapsed: 0, isFocused: false });
             },
-
+            
             setActiveTask: function(taskIndex) {
                 this.activeTaskIndex = taskIndex;
                 this.activeTask = this.tasks[taskIndex];
+                // set focus to the task
+                this.tasks.forEach((task, index) => {
+                    task.isFocused = index === taskIndex;
+                });
             },
-
+            
             notifyUser: function(message) {
                 new Notification(message);
                 speaker.speak(message);
@@ -166,12 +187,12 @@
                     this.tasks[taskIndex].elapsed++;
                     // set page title to clock emoji and remaining time
                     document.title = '🕒  ' + formatSecondsToTime(this.tasks[taskIndex].duration - this.tasks[taskIndex].elapsed) + " " + this.tasks[taskIndex].task;
-
+                    
                     // update the progress bar
                     taskTimeProgressBar.animate(this.thisTaskProgress());
                     // set tak time progress bar text
                     taskTimeProgressBar.setText(formatSecondsToTime(this.tasks[taskIndex].duration - this.tasks[taskIndex].elapsed));
-
+                    
                     // if time exceesd duration, send browser notification with next task text
                     const timeLeft = this.tasks[taskIndex].duration - this.tasks[taskIndex].elapsed;
                     const isOverDue = timeLeft < 0;
@@ -195,6 +216,29 @@
             resetTimer: function(taskIndex) {
                 this.tasks[taskIndex].elapsed = 0;
             },
+            moveItemDown: function(index) {
+                if ((!index && index!=0) || index === this.tasks.length - 1) {
+                    return;
+                }
+                const item = this.tasks[index];
+                // log all intermediate values
+                console.log(index, this.tasks.length, item);
+                this.tasks.splice(index, 1); // how splice works: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/splice 
+                this.tasks.splice(index + 1, 0, item); // 
+            },
+            moveItemUp: function(index) {
+                if (!index || index === 0) {
+                    return;
+                }
+                const item = this.tasks[index];
+                this.tasks.splice(index, 1);
+                this.tasks.splice(index - 1, 0, item);
+            },
+            moveItemFromTo: function(from, to) {
+                const item = this.tasks[from];
+                this.tasks.splice(from, 1);
+                this.tasks.splice(to, 0, item);
+            },
             play: function() {
                 // start timer on active task
                 this.stopTimer();
@@ -203,7 +247,7 @@
                     console.log(result);
                 });
             },
-
+            
             completeTask: function() {
                 this.tasks[this.activeTaskIndex].done = true;
                 bar.animate(this.totalProgress());
@@ -211,8 +255,8 @@
                 setTimeout(() => {
                     randomConfetti(500);
                 }, 500);
-
-
+                
+                
                 // if there are no more non-empty tasks, stop 
                 if (this.activeTaskIndex === this.tasks.length - 1) {
                     this.stopTimer(this.activeTaskIndex);
@@ -229,9 +273,10 @@
                     this.stopTimer();
                     this.startTimer();
                 }
+                this.saveStateInCookie();
             },
             nextTask: function() {
-
+                
                 // if this is the last task, stop the timer
                 if (this.activeTaskIndex === this.tasks.length - 1) {
                     this.stopTimer();
@@ -245,39 +290,39 @@
                 }
                 
             },
-
+            
             totalProgress: function() {
                 const totalDuration = this.tasks.reduce((acc, task) => acc + task.duration, 0);
                 const totalElapsedOfDoneTasks = this.tasks.filter(task => task.done && task!='').reduce((acc, task) => acc + task.duration, 0);
                 return totalElapsedOfDoneTasks / totalDuration;
             },
-
+            
             thisTaskProgress: function() {
                 return 1-(this.activeTask.elapsed / this.activeTask.duration);
             },
             
             previousTask: function() {
                 console.log('previous task');
-
+                
                 // reset this task
                 this.resetTimer(this.activeTaskIndex);
                 this.tasks[this.activeTaskIndex].done = false;
-
+                
                 bar.animate(this.totalProgress());
-
+                
                 if(this.activeTaskIndex === 0){
                     return;
                 }
                 // if more than 1 second has passed or this is the first item, just, reset the task
-               
+                
                 this.setActiveTask(this.activeTaskIndex - 1);
-
+                
                 if (this.timer) {
                     this.stopTimer();
                     this.startTimer();
                 }
             },
-
+            
             taskTimeProgress: function() {
                 return ((this.activeTask.duration-this.activeTask.elapsed) / this.activeTask.duration);
             },
@@ -289,7 +334,7 @@
                 this.stopTimer();
                 this.setActiveTask(0);
             },
-
+            
             editingTasks: function() {
                 
                 // recalculate the duration
@@ -299,7 +344,7 @@
                 // update the progress bar
                 bar.animate(this.totalProgress());
             },
-
+            
             doneToggled: function(index) {
                 // if task is done, make a tiny bit of confetti
                 if (this.tasks[index].done) {
@@ -307,6 +352,32 @@
                 }
                 bar.animate(this.totalProgress());
             },
+
+            saveStateRegularly: function(){
+                setInterval(() => {
+                    this.saveStateInCookie();
+                }, 1000);
+            },
+
+            saveStateInCookie : function(){
+                // save the state of the flowlist in a cookie
+                Cookies.set('flowlist.tasks', JSON.stringify(this.tasks), { expires: 900 });
+                Cookies.set('flowlist.activeTaskIndex', this.activeTaskIndex, { expires: 900 });
+            },
+            loadStateFromCookie : function(){
+                // load the state of the flowlist from a cookie
+                let tasks = Cookies.get('flowlist.tasks');
+                if(!tasks){
+                    return;
+                }
+                tasks = JSON.parse(tasks);
+                let activeTaskIndex = Cookies.get('flowlist.activeTaskIndex');
+                activeTaskIndex = parseInt(activeTaskIndex);
+                console.log('loading active task index ', activeTaskIndex);
+  
+                this.tasks = tasks;
+                this.setActiveTask(activeTaskIndex);
+            }
             
         });
         
@@ -361,165 +432,241 @@
         const formElements = ['INPUT', 'TEXTAREA', 'SELECT', 'OPTION', 'BUTTON'];
         evt = evt || window.event;
         
-            let flowlist = Alpine.store('flowlist');
-            
-            if (event.key === ' ') {
-                if (!formElements.includes(evt.target.tagName)) {
+        let flowlist = Alpine.store('flowlist');
         
-                    if(flowlist.timer){
-                        flowlist.stopTimer(flowlist.activeTaskIndex);
-                    }else{
-                        flowlist.play()
-                    }
-                }
-            }
-            if (event.key === 'Enter') {
-                // is the target an input and is it not empty?
-                const isInput = evt.target.tagName === 'INPUT';
-                const isNotEmpty = evt.target.value !== '';
-                // is it the last input?
-                console.log(isInput, isNotEmpty);
-
-                if(isInput && isNotEmpty){
-                    flowlist.addTask();
-                    // find most recently added input and focus on it
-                    setTimeout(() => {
-                        const table = document.querySelector('#taskTable');
-                        const lastRow = table.rows[table.rows.length - 2];
-                        var input = lastRow.querySelectorAll('td')[1].querySelector('input')
-                        input.focus();
-
-
-                    }, 100);
-                }
-                // if timer is running, complete the task
-                if (flowlist.timer) {
-                    flowlist.completeTask();
-                }
-
-            }
-            // up or left arrow
-            if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+        if (!formElements.includes(evt.target.tagName)) {
+            if (event.key === 'ArrowLeft') {
                 // got to previous task
                 flowlist.previousTask();
                 
             }
-            if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+            if (event.key === 'ArrowRight') {
                 // go to next task
                 flowlist.completeTask();
             }
+            
+            if (event.key === ' ') {
                 
+                if(flowlist.timer){
+                    flowlist.stopTimer(flowlist.activeTaskIndex);
+                }else{
+                    flowlist.play()
+                }
+            }
+        }
+
+    if (event.key === 'Enter') {
+        // is the target an input and is it not empty?
+        const isInput = evt.target.tagName === 'INPUT';
+        const isNotEmpty = evt.target.value !== '';
+        // is it the last input?
+        console.log(isInput, isNotEmpty);
+        
+        if(isInput && isNotEmpty){
+            flowlist.addTask();
+            // find most recently added input and focus on it
+            setTimeout(() => {
+                const table = document.querySelector('#taskTable');
+                const lastRow = table.rows[table.rows.length - 2];
+                var input = lastRow.querySelectorAll('td')[1].querySelector('input')
+                input.focus();
+                
+                
+            }, 100);
+        }
+        // if timer is running, complete the task
+        if (flowlist.timer) {
+            flowlist.completeTask();
+        }
+        
     }
     
     
-    // notifcation
-    Notification.requestPermission().then((result) => {
-        console.log(result);
-    });
+    // move focused task up or down
     
-    var bar = null;
-    window.onload = function onLoad() {
+    if (event.shiftKey && event.key === 'ArrowUp') {
+        // move task up
+        console.log('move up', flowlist.focusedTask);
+        flowlist.moveItemUp(flowlist.focusedTask);
+        // focus on the moved task
+        // set focus to row n (n= focusedTask)
+        n = flowlist.focusedTask - 1;
+        if (n < 0) {
+            n = 0;
+        }
+        document.querySelector('#taskTable').rows[n].querySelector('input[type="text"]').focus();
+    } else if(event.key === 'ArrowUp'){
+        // move focus to previous item
+        n = flowlist.focusedTask - 1;
+        if (n < 0) {
+            n = 0;
+        }
+        document.querySelector('#taskTable').rows[n].querySelector('input[type="text"]').focus();
+    }
+    
+    // on shift+arrow down, move task down
+    
+    if (event.shiftKey && event.key === 'ArrowDown') {
+        // move task down
+        console.log('move down', flowlist.focusedTask);
+        flowlist.moveItemDown(flowlist.focusedTask);
+        // focus on the moved task
+        // set focus to row n (n= focusedTask)
+        n = flowlist.focusedTask + 1;
+        if (n > flowlist.tasks.length - 1) {
+            n = flowlist.tasks.length - 1;
+        }
+        document.querySelector('#taskTable').rows[n].querySelector('input[type="text"]').focus();
+    } else if(event.key === 'ArrowDown'){
+        // move focus to next item
+        n = flowlist.focusedTask + 1;
+        if (n > flowlist.tasks.length - 1) {
+            n = flowlist.tasks.length - 1;
+        }
+        document.querySelector('#taskTable').rows[n].querySelector('input[type="text"]').focus();
+    }
+    
+}
+
+
+// notifcation
+Notification.requestPermission().then((result) => {
+    console.log(result);
+});
+
+var bar = null;
+window.onload = function onLoad() {
     bar = new ProgressBar.Line('#progress', {
         color: '#c71c8d',
         duration: 500,
         easing: 'easeInOut',
         trailColor: '#eee',
     });
-
+    
     taskTimeProgressBar = new ProgressBar.Circle('#taskTimeProgressBar', {
         color: '#00FF00',
         duration: 500,
         easing: 'easeInOut',
         trailColor: '#eee',
         transform: {
-                prefix: true,
-                value: 'translate(-50%, -50%)'
-            },
+            prefix: true,
+            value: 'translate(-50%, -50%)'
+        },
         strokeWidth: 3,
         text: {className: 'progressCircleText'}
-
-       
+        
+        
         
     });
-
-
+    
+    
 };
 
 // focus on the first text input
+let sortable = null;
 document.addEventListener('alpine:initializing', () => {
     setTimeout(() => {
         document.querySelector('input[type="text"]').focus();
     }, 100);
+    
+    var el = document.getElementById('taskTable');
+    sortable = new Sortable(el, {
+        animation: 150,
+        ghostClass: 'blue-background-class',
+        onEnd: (ev) => {
+            //Update the items array with the new order
+            const items = Alpine.raw(Alpine.store('flowlist').tasks);
+            const [movedItem] = items.splice(ev.oldIndex, 1);
+            items.splice(ev.newIndex, 0, movedItem);
+            Alpine.store("flowlist.tasks", items);
+            console.log(items);
+            
+            // Set _x_prevKeys again with the updated order of keys
+            // If we don't do this, the next time we add an item it will be added to the wrong position.
+            // find 'template' child of #taskTable
+            const template =  document.querySelector('#taskTable').querySelector('template');
+            template._x_prevKeys = items.map((item) => item.id);
+            // on next tick set focused task to the first item 
+            setTimeout(() => {
+                Alpine.store('flowlist').setActiveTask(0);
+            }, 0);
+            
+        }
+    });
 });
+
+// PWA stuff
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/serviceWorker.js');
+}
 
 
 </script>
 
 
 <style>
-            .progress {
-                height: 5px;
-                width: 100%;
-            }
-
-            .progress > svg {
-                height: 100%;
-                display: block;
-            }
-
-tr {
-    width: 100%;
-    position: relative;
-
-}
-
-tr, td {
-    margin: 0;
-    line-height: 1;
-    padding: 4px;
-    border: 0;
-    border-bottom: 0;
-}
-
-/* text inpujt */
-input {
-    width: 100%;
-    border: none;
-    margin: 0;
-    padding: 3px;
-    background-color: transparent;
-    /* align input text in center */
-    text-align: center;
+    .progress {
+        height: 5px;
+        width: 100%;
+    }
     
-}
-
-.progressbar-text {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 2em;
-    font-weight: 500;
-    color: #b7ff10;
-}
-div {
-    border: 0px solid #e3e2e2;
-}
-/* focused input */
-input:focus {
-    outline: none;
-    background-color: #f1f1f1;
-}
-
-
-    .activeTableRow {
+    .progress > svg {
+        height: 100%;
+        display: block;
+    }
+    
+    tr {
+        width: 100%;
+        position: relative;
+        
+    }
+    
+    tr, td {
+        margin: 0;
+        line-height: 1;
+        padding: 4px;
+        border: 0;
+        border-bottom: 0;
+    }
+    
+    /* text inpujt */
+    input {
+        width: 100%;
+        border: none;
+        margin: 0;
+        padding: 3px;
+        background-color: transparent;
+        /* align input text in center */
+        text-align: center;
+        
+    }
+    
+    .progressbar-text {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 2em;
+        font-weight: 500;
+        color: #b7ff10;
+    }
+    div {
+        border: 0px solid #e3e2e2;
+    }
+    /* focused input */
+    input:focus {
+        outline: none;
         background-color: #f1f1f1;
     }
     
+    .activeTableRow {
+        background-color: #f1f1f1;
+        transition: background-color 0.5s ease-in-out;
+    }
     /* sparkle animatino */
     @keyframes sparkle {
         0% {
@@ -537,37 +684,37 @@ input:focus {
         color: rgba(94, 0, 0, 0.755);
         font-size: 3em;
     }
-
+    
     .regularTimeText {
         /* animate color gradient */
         color: rgba(219, 73, 255, 0.747);
         font-size: 3em;
     }
-#timeprogresscontainer {
-    width: 150px;
-    height: 150px;
-    /* algin content in center */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: auto;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-    font-weight: 500;
-
-}
-
-.progressCircleText {
-    font-size: 2em;
-    color: #ef0abd !important;
-}
-.line-through {
-    text-decoration: line-through;
-}
-
+    #timeprogresscontainer {
+        width: 150px;
+        height: 150px;
+        /* algin content in center */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: auto;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+        font-weight: 500;
+        
+    }
+    
+    .progressCircleText {
+        font-size: 2em;
+        color: #ef0abd !important;
+    }
+    .line-through {
+        text-decoration: line-through;
+    }
+    
     button {
         /* no broder */
         border: none;
-
+        
         
     }
     /* tint darker on hover, no matter the color */
@@ -576,5 +723,31 @@ input:focus {
         cursor: pointer;
     }
     
+    /* make navigation stick to botto of page (for pwa) */
+    #nav {
+        position: fixed;
+        bottom: 0;
+
+        /* exactly as wide as view */
+        width: 90%;
+        margin: 5%
+
+        overflow: scroll;
+        left: 5%;
+        margin: 0;
+        padding-left: 20px !important;
+        /* make contents spread evenly */
+    }
+
+    #globalcontainer {
+        /* make the container fill the whole screen */
+        height: 100%
+        width: 100%;
+        overflow: scroll;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
 </style>
 

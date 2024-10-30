@@ -10,7 +10,7 @@ speaker = {
         this.loadVoices();
         // Chrome loads voices asynchronously.
         window.speechSynthesis.onvoiceschanged = function(e) {
-            loadVoices();
+            this.loadVoices();
         };
         
     },

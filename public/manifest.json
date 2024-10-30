@@ -1,0 +1,14 @@
+{
+  "name": "My App",
+  "short_name": "App",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/icon/ios/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
